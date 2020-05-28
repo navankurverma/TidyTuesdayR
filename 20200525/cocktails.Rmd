@@ -1,0 +1,101 @@
+---
+title: "Cocktails - TidyTuesdayR"
+author: "Navankur Verma"
+date: "25/05/2020"
+output: 
+  html_document:
+    fig_caption: yes
+    theme: lumen
+    css: mycss.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(arules)
+library(arulesViz)
+```
+
+# Some clean up and exploration:
+
+```{r, message=FALSE}
+library(knitr)
+library(tidyverse)
+
+cocktails <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-05-26/cocktails.csv')
+
+# Converting every character to lower case:
+cocktails <- cocktails %>% 
+  mutate(alcoholic = str_to_lower(alcoholic),
+         glass = str_to_lower(glass),
+         ingredient = str_to_lower(ingredient))
+
+cocktails %>% 
+  filter(ingredient_number == 1) %>% 
+  count(alcoholic, category, glass, sort = TRUE)
+
+cocktails %>% 
+  count(alcoholic, ingredient, sort = TRUE)
+```
+
+Gin, Vodka, Orange & Lemon Juice are most common ingredients. Using these counts can do bar plot stuff but maybe later, I thought to implement each of my last semester learnings in upcoming [#tidytuesday](https://twitter.com/search?q=%23tidytuesday&src=typed_query
+) datasets.
+
+# Association Rule Learing:
+
+Need to transform data into transaction type matrix which can then be directly used in `arules` R package. 
+Single cocktail has as many rows as its ingredients, so keeping only single rows for each cocktail with all ingredients stored as list.
+
+```{r}
+library(arules)
+singles <-  cocktails %>%
+  mutate(ingredient = factor(ingredient)) %>% 
+  group_by(row_id) %>% 
+  summarize(ingredlist = list(ingredient))
+
+#Attaching name to each set of ingredient with cocktail's row_id
+names(singles$ingredlist) <- singles$row_id
+```
+
+Some cocktails have duplicate ingredients in data, like below:  
+ingredient 'food color' is present multiple times having different values in 'measure')  
+Hence the warning.
+
+```{r}
+ingreds <- as(singles$ingredlist, "transactions")
+rules <- apriori(ingreds, parameter = list(support = 0.01, confidence = 0.2))
+#After multiple threshold setting, choosing 0.01 and 0.2 as it returns suitable amount of rules.
+summary(rules)
+```
+
+```{r, results='hide'}
+sub_rules <- inspect(head(rules, n = 10, by = "lift"))
+```
+```{r}
+kable(sub_rules)
+```
+
+Package `arulesViz` gives an extensive options for visual representations of association rules:
+
+```{r, fig.width=8, fig.height=6} 
+library(arulesViz)
+library(htmlwidgets)
+library(htmltools)
+top_rules <- head(rules, n = 10, by = "lift")
+p <- plot(rules, method = "graph", engine = "htmlwidget")
+#Making it pretty with html tags and transparency taken care using manual css:
+p <- prependContent(p, tags$h1("Relation between Ingredients of Cocktails")) 
+p <- prependContent(p, tags$p("Size corresponds to Support")) 
+p <- prependContent(p, tags$p("Color corresponds to Lift"))
+p <- prependContent(p, tags$p("Scroll up/down to Zoom and Hover for details"))
+p <- prependContent(p, tags$script('document.body.style.backgroundImage = "url(https://static.vecteezy.com/system/resources/previews/000/444/109/non_2x/vector-alcohol-cocktails-icons-black.jpg)"'))
+p
+```
+
+Another representations of rules can be through Matrix visualisation of antecedent and consequent itemsets forming the columns and rows of matrix, respectively. Rules with the highest lift are placed in the top-right corner.
+
+```{r, fig.width=8, fig.height=6}
+plot(rules, method = "matrix", engine = "htmlwidget")
+```
+
+
+

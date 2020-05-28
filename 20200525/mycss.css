@@ -1,0 +1,8 @@
+body {
+  background-image: url('https://static.vecteezy.com/system/resources/previews/000/444/109/non_2x/vector-alcohol-cocktails-icons-black.jpg');
+}
+
+div {
+  background-color: rgba(255, 255, 255, 0.85)   /* 35% opaque white */;
+  padding: 0.25em;
+}
