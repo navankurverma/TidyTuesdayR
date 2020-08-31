@@ -1,0 +1,41 @@
+---
+title: "Traumatic Brain Injury"
+author: "Navankur Verma"
+date: "24/03/2020"
+output: 
+  html_document:
+    output.dir: "E:/FromE_StudyMaterial/TidyTuesdayR/docs/"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(out_dir = "E:/FromE_StudyMaterial/TidyTuesdayR/docs/")
+```
+
+# Traumatic Brain Injury (TBI)
+
+```{r}
+str(knitr::opts_knit$get())
+
+library(tidyverse)
+library(gganimate)
+library(gifski)
+library(png)
+
+tbi_age <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-03-24/tbi_age.csv')
+tbi_year <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-03-24/tbi_year.csv')
+tbi_military <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-03-24/tbi_military.csv')
+ 
+p <- tbi_year %>% 
+  filter(injury_mechanism != "Total") %>% 
+  ggplot( aes(x = injury_mechanism,y = rate_est, fill = type )) +
+  geom_bar(position = "dodge", stat = "identity") + 
+  scale_x_discrete(labels = function(x) stringr::str_wrap(x, width = 20), 
+                   guide = guide_axis(n.dodge = 2)) +
+  transition_states(year, transition_length = 10, state_length = 1) +
+  labs(fill = "Types", y = "Estimated Rate per 100k",
+       x = "Cause of Injury", title = "Traumatic Brain Injury (TBI) in {closest_state}")
+
+animate(p, height = 400, width = 600)
+```
+
